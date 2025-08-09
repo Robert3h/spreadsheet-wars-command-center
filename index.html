@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>試算表大戰 | Portfolio Galaxy 2.0</title>
+    <title>試算表大戰 | Portfolio Galaxy 3.0 - 星雲版</title>
     <style>
         body, html {
             margin: 0;
             padding: 0;
             overflow: hidden;
-            background-color: #000;
+            background-color: #000005;
         }
         #galaxy-container {
             position: absolute;
@@ -21,31 +21,32 @@
         #info-panel {
             display: none;
             position: absolute;
-            width: 320px;
-            padding: 15px 20px;
-            background-color: rgba(10, 25, 47, 0.85);
+            width: 330px;
+            padding: 18px 22px;
+            background-color: rgba(10, 25, 47, 0.9);
             border: 1px solid #00aaff;
             border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0, 170, 255, 0.5);
+            box-shadow: 0 0 25px rgba(0, 170, 255, 0.6);
             color: #e0f7fa;
             font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
-            transform: translate(20px, -50%); /* Offset from the node */
-            pointer-events: all; /* Allow interaction with the panel */
+            transform: translate(30px, -50%); /* Offset from the node */
+            pointer-events: all;
+            backdrop-filter: blur(5px);
         }
         #info-panel h2 {
-            font-size: 1.2em;
+            font-size: 1.25em;
             margin: 0 0 10px 0;
             color: #76d7c4;
         }
         #info-panel p {
             font-size: 0.9em;
             margin: 5px 0;
-            line-height: 1.5;
+            line-height: 1.6;
         }
         #info-panel a {
             display: inline-block;
             margin-top: 15px;
-            padding: 8px 12px;
+            padding: 8px 14px;
             border: 1px solid #76d7c4;
             border-radius: 4px;
             color: #76d7c4;
@@ -79,7 +80,6 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- Complete Article Database ---
         const articles = [
             // EP1-14
             { id: "EP01", type: "EP", date: "2025-03-11", title: "EP01《試算表大戰首部曲：…同事滑手機還能準時下班的秘密！》", summary: "一個VBA學徒踏上尋找自動化之道的冒險，迎向傳說中的大師──ChatGPT！" },
@@ -96,14 +96,10 @@
             { id: "EP12", type: "EP", date: "2025-07-10", title: "EP12《試算表大戰十二部曲：被重複性報表不斷折磨後，前往談判的時間博士！》", summary: "面對重複性報表地獄，將流程拆解並打造成可重複使用的VBA函數庫，主動掌握流程，擺脫被動折磨。" },
             { id: "EP13", type: "EP", date: "2025-07-24", title: "EP13《Spreadsheet Wars：唯一確定的，就是「什麼都不確定」…》", summary: "在獲得升遷後，反而引發對自身價值的反思。面對合併案的高度不確定性，決定向內聚焦，專注於長期價值的建立。" },
             { id: "EP14", type: "EP", date: "2025-08-07", title: "EP14《Spreadsheet Wars：雖然我沒有辦法把Excel玩成電競…》", summary: "從Excel世界大賽得到啟發，雖然無法成為頂尖高手，但透過打造自己的VBA模組艦隊，贏得了寶貴的個人時間。" },
-            
-            // SP1-4
             { id: "SP01", type: "SP", date: "2025-04-05", title: "SP01《…「破窗效應」對報表與生活環境帶來Bug》", summary: "以VBA報表除錯為喻，探討生活中的「破窗效應」，呼籲大家正視並修復身邊沉默的錯誤，守護共同價值。" },
             { id: "SP02", type: "SP", date: "Unknown", title: "SP02《…地基不穩，再美好的生活與工作都是幻影》", summary: "探討國安議題，強調在重大議題上沒有中立，不選擇的結果將由別人決定，呼籲大家為自己的未來做出選擇。" },
             { id: "SP03", type: "SP", date: "2025-07-04", title: "SP03《…一部關於台灣過去、現在與未來的紀錄片》", summary: "紀錄片《造山者》觀後感，對台灣半導體前輩們的遠見與賭注感到震撼，並反思個人在安逸環境下的責任與選擇。" },
             { id: "SP04", type: "SP", date: "2025-07-23", title: "SP04《…我不想等飛機真的下墜時，才開始去搶降落傘！》", summary: "分享準備家庭災難包的過程與思考，強調在複合式風險面前，提前準備不是製造焦慮，而是愛與責任的體現。" },
-
-            // TLDR1-4
             { id: "TLDR01", type: "TLDR", date: "2025-06-15", title: "TLDR_EP01《震波行動：一鍵發射你的 Outlook 洲際彈道導彈》", summary: "一頁圖文懶人包，展示如何用VBA將重複的Outlook寄信工作自動化，精準命中目標。" },
             { id: "TLDR02", type: "TLDR", date: "2025-07-14", title: "TLDR_EP02《俠盜一號：帝國指揮官的報表命名檢查器》", summary: "一頁圖文懶人包，介紹一個VBA小工具，能自動檢查多份報表的命名規則與路徑，確保檔案不遺漏。" },
             { id: "TLDR03", type: "TLDR", date: "2025-07-28", title: "TLDR_EP03《時間博士：設計魔法函數前去和重複黑暗魔王談判》", summary: "一頁圖文懶人包，分享如何將重複的流程模組化，打造自己的VBA函數庫，對抗重複工作的黑暗魔王。" },
@@ -125,32 +121,60 @@
         controls.minDistance = 5;
         controls.maxDistance = 100;
 
-        // --- Starfield ---
-        const starsGeometry = new THREE.BufferGeometry();
-        const starsCount = 5000;
-        const posArray = new Float32Array(starsCount * 3);
-        for (let i = 0; i < starsCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 200;
+        // --- Nebula & Stars ---
+        const starTexture = new THREE.TextureLoader().load('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABFklEQVRYR+3VwQnCUBCE4X8GChDCGG3EJo6ikWiGzAxp4gB2cCchBIIgIBvM4Bq8k4QRyZBA3iT9f6gH2qf/+7f3JwgwzDAGeLwA8sEz0JDDH7lAj9kMYHkPZAG/A2LAc9ANDHqGAXmQIdwD6zYC44DuwDYwA14Ci5AF2IfsQxI4Ci5AGbiG7EF+IccwB5YgC5wL9yEPfAonwL2QYyI4CVyDPfAynAN2YQfkQMVyAnwLZsA/kANuYQe8BJagD/wBGSA3fAt2gLvgCdgCvgCbwB3YAj6AHbAFnAGNwBHwAnwDzwFPYAe8BxIgDzzCCJgDr8EXsAeeQU+An+A28Aw8Ay/BH/AQPIIfwDfwE3gG/gY/gZ/gj/AD/Aj/AF/DP/Bf/Av+Bc+AJ+A58BW4Ctz/AM4C/gH08QJ2a0DA3wAAAABJRU5ErkJggg==');
+        
+        function createStarfield() {
+            const vertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const x = THREE.MathUtils.randFloatSpread(200);
+                const y = THREE.MathUtils.randFloatSpread(200);
+                const z = THREE.MathUtils.randFloatSpread(200);
+                vertices.push(x, y, z);
+            }
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            const material = new THREE.PointsMaterial({ color: 0x888888, size: 0.1 });
+            const stars = new THREE.Points(geometry, material);
+            scene.add(stars);
         }
-        starsGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const starsMaterial = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff });
-        const starMesh = new THREE.Points(starsGeometry, starsMaterial);
-        scene.add(starMesh);
 
-        // --- Nodes ---
+        function createNebula() {
+            const nebulaMaterial = new THREE.SpriteMaterial({
+                map: starTexture,
+                color: 0x6f42c1,
+                blending: THREE.AdditiveBlending,
+                opacity: 0.3,
+                transparent: true,
+                sizeAttenuation: true
+            });
+            for (let i = 0; i < 50; i++) {
+                const sprite = new THREE.Sprite(nebulaMaterial.clone());
+                sprite.position.set(
+                    (Math.random() - 0.5) * 30,
+                    (Math.random() - 0.5) * 20,
+                    (Math.random() - 0.5) * 20 - 15
+                );
+                sprite.scale.set(
+                    (Math.random() + 0.5) * 8,
+                    (Math.random() + 0.5) * 8,
+                    1
+                );
+                scene.add(sprite);
+            }
+        }
+
+        createStarfield();
+        createNebula();
+
         const objects = [];
         const constellationCenters = {
             EP: new THREE.Vector3(-15, 5, 0),
             SP: new THREE.Vector3(15, -5, 0),
             TLDR: new THREE.Vector3(0, -10, 5)
         };
-        const constellationRadius = {
-            EP: 10, SP: 6, TLDR: 6
-        };
-
-        const colorMap = {
-            EP: 0x00aaff, SP: 0xff4444, TLDR: 0xffff00
-        };
+        const constellationRadius = { EP: 10, SP: 6, TLDR: 6 };
+        const colorMap = { EP: 0x00aaff, SP: 0xff4444, TLDR: 0xffff00 };
 
         articles.forEach(article => {
             const geometry = new THREE.SphereGeometry(0.5, 32, 32);
@@ -171,10 +195,10 @@
             objects.push(sphere);
         });
 
-        // --- Interaction ---
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         const infoPanel = document.getElementById('info-panel');
+        let selectedObject = null;
 
         function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
@@ -184,45 +208,45 @@
         window.addEventListener('resize', onWindowResize, false);
 
         function onClick(event) {
-            // Check if click is on the info panel
             if (infoPanel.style.display === 'block' && infoPanel.contains(event.target)) {
                 return;
             }
-
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-
             const intersects = raycaster.intersectObjects(objects);
 
             if (intersects.length > 0) {
-                const obj = intersects[0].object;
-                const data = obj.userData;
-                
+                selectedObject = intersects[0].object;
+                const data = selectedObject.userData;
                 document.getElementById('info-title').textContent = data.title;
                 document.getElementById('info-date').textContent = "發布於：" + data.date;
                 document.getElementById('info-summary').textContent = data.summary;
-                document.getElementById('info-link').href = "#" + data.id; // Placeholder
-
-                const screenPos = obj.position.clone().project(camera);
-                infoPanel.style.left = `${(screenPos.x + 1) / 2 * window.innerWidth}px`;
-                infoPanel.style.top = `${(-screenPos.y + 1) / 2 * window.innerHeight}px`;
+                document.getElementById('info-link').href = "#" + data.id;
                 infoPanel.style.display = 'block';
-
+                updatePanelPosition();
             } else {
+                selectedObject = null;
                 infoPanel.style.display = 'none';
             }
         }
         window.addEventListener('click', onClick);
 
-        // --- Animation Loop ---
+        function updatePanelPosition() {
+            if (selectedObject && infoPanel.style.display === 'block') {
+                const screenPos = selectedObject.position.clone().project(camera);
+                infoPanel.style.left = `${(screenPos.x + 1) / 2 * window.innerWidth}px`;
+                infoPanel.style.top = `${(-screenPos.y + 1) / 2 * window.innerHeight}px`;
+            }
+        }
+
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
+            updatePanelPosition();
             renderer.render(scene, camera);
         }
         animate();
-
     </script>
 </body>
 </html>
