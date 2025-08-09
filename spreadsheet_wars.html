@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>試算表大戰 | 指揮中心</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', '微軟正黑體', sans-serif;
+        }
+        #interactive-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        #info-panel {
+            position: absolute;
+            top: 50%;
+            left: -500px;
+            transform: translateY(-50%);
+            width: 400px;
+            padding: 20px;
+            background: rgba(0, 15, 30, 0.85);
+            border: 1px solid #00aaff;
+            border-radius: 0 10px 10px 0;
+            transition: left 0.5s ease-in-out;
+            box-shadow: 0 0 15px rgba(0, 170, 255, 0.5);
+        }
+        #info-panel.visible {
+            left: 0;
+        }
+        #info-panel h2 {
+            margin-top: 0;
+            font-size: 1.5em;
+            color: #00aaff;
+        }
+        #info-panel p {
+            font-size: 1em;
+            line-height: 1.6;
+        }
+        #info-panel a {
+            color: #00f6ff;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 15px;
+            border: 1px solid #00f6ff;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="interactive-container"></div>
+    <div id="info-panel">
+        <h2 id="info-title"></h2>
+        <p id="info-date"></p>
+        <p id="info-summary"></p>
+        <a id="info-link" href="#" target="_blank">閱讀全文</a>
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        const articles = [
+            // EP Articles
+            { "id": "EP01", "type": "EP", "date": "2025-03-11", "title": "EP01《試算表大戰首部曲：Excel 報表做了四年，才發現同事總是滑手機還能準時下班的秘密！》", "summary": "一名VBA學徒，在混亂的試算表銀河系中，踏上了尋找自動化之道的冒險，迎向傳說中的大師──ChatGPT！" },
+            { "id": "EP02", "type": "EP", "date": "2025-03-18", "title": "EP02《試算表大戰二部曲：當主管對我說「這工作我真的沒辦法…」》", "summary": "當自動化的力量開始改變團隊，一場Excel 革命正在醞釀……VBA 的影響力，不止於個人，而是改變整個戰局！" },
+            { "id": "EP15", "type": "EP", "date": "2025-08-21", "title": "EP15《Spreadsheet Wars：價值觀與信念，才是人與人之間的連結器！》", "summary": "反思價值觀如何成為建立人際與專業連結的真正核心，而非僅僅是技能的展現。" },
+
+            // SP Articles
+            { "id": "SP01", "type": "SP", "date": "2025-04-05", "title": "SP01《試算表大戰外傳一：「破窗效應」對報表與生活環境帶來Bug》", "summary": "探討微小的錯誤若不即時修正，不論在試算表或現實社會中，都可能引發更大的問題。" },
+            { "id": "SP04", "type": "SP", "date": "2025-07-23", "title": "SP04《Spreadsheet Wars Special Piece IV：我不想等飛機真的下墜時，才開始去搶降落傘！》", "summary": "面對不確定性，呼籲採取主動的準備，強調為自身安全與自由負責的重要性。" },
+
+            // TLDR Articles
+            { "id": "TLDR01", "type": "TLDR", "date": "2025-06-15", "title": "TLDR_EP 01《震波行動：一鍵發射你的 Outlook 洲際彈道導彈》", "summary": "一頁圖文教學，展示如何用VBA自動化發送客製化Email，將繁瑣任務變成一鍵搞定。" },
+            { "id": "TLDR02", "type": "TLDR", "date": "2025-07-14", "title": "TLDR_EP 02《俠盜一號：帝國指揮官的報表命名檢查器》", "summary": "快速介紹一個VBA小工具，自動確保所有報表都已正確命名並歸檔，避免 혼亂。" }
+        ];
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        const svg = d3.select("#interactive-container").append("svg")
+            .attr("width", width)
+            .attr("height", height);
+
+        const simulation = d3.forceSimulation(articles)
+            .force("charge", d3.forceManyBody().strength(-200))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(d => d.type === 'TLDR' ? 20 : 30));
+
+        const colorScale = d3.scaleOrdinal()
+            .domain(["EP", "SP", "TLDR"])
+            .range(["#00aaff", "#ff4444", "#ffff00"]);
+
+        const nodes = svg.append("g")
+            .selectAll("circle")
+            .data(articles)
+            .enter().append("circle")
+            .attr("r", d => d.type === 'TLDR' ? 10 : 15)
+            .attr("fill", d => colorScale(d.type))
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 1.5)
+            .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended))
+            .on("click", showInfo);
+
+        const labels = svg.append("g")
+            .selectAll("text")
+            .data(articles)
+            .enter().append("text")
+            .text(d => d.id)
+            .attr("fill", "#fff")
+            .attr("font-size", "10px")
+            .attr("dx", 18)
+            .attr("dy", 4);
+
+        simulation.on("tick", () => {
+            nodes
+                .attr("cx", d => d.x)
+                .attr("cy", d => d.y);
+            labels
+                .attr("x", d => d.x)
+                .attr("y", d => d.y);
+        });
+
+        function dragstarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+
+        function dragended(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+
+        const infoPanel = d3.select("#info-panel");
+        function showInfo(event, d) {
+            infoPanel.classed("visible", true);
+            d3.select("#info-title").text(d.title);
+            d3.select("#info-date").text(`發布於： ${d.date}`);
+            d3.select("#info-summary").text(d.summary);
+            d3.select("#info-link").attr("href", `#${d.id}`);
+        }
+    </script>
+</body>
+</html>
