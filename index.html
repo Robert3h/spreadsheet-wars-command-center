@@ -3,61 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>試算表大戰 | 指揮中心</title>
+    <title>試算表大戰 | Portfolio Galaxy 2.0</title>
     <style>
         body, html {
             margin: 0;
             padding: 0;
-            width: 100%;
-            height: 100%;
             overflow: hidden;
-            background: #000;
-            color: #fff;
-            font-family: 'Segoe UI', 'Microsoft JhengHei', '微軟正黑體', sans-serif;
+            background-color: #000;
         }
-        #interactive-container {
+        #galaxy-container {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            position: relative;
         }
         #info-panel {
+            display: none;
             position: absolute;
-            top: 50%;
-            left: -500px;
-            transform: translateY(-50%);
-            width: 400px;
-            padding: 20px;
-            background: rgba(0, 15, 30, 0.85);
+            width: 320px;
+            padding: 15px 20px;
+            background-color: rgba(10, 25, 47, 0.85);
             border: 1px solid #00aaff;
-            border-radius: 0 10px 10px 0;
-            transition: left 0.5s ease-in-out;
-            box-shadow: 0 0 15px rgba(0, 170, 255, 0.5);
-        }
-        #info-panel.visible {
-            left: 0;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 170, 255, 0.5);
+            color: #e0f7fa;
+            font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+            transform: translate(20px, -50%); /* Offset from the node */
+            pointer-events: all; /* Allow interaction with the panel */
         }
         #info-panel h2 {
-            margin-top: 0;
-            font-size: 1.5em;
-            color: #00aaff;
+            font-size: 1.2em;
+            margin: 0 0 10px 0;
+            color: #76d7c4;
         }
         #info-panel p {
-            font-size: 1em;
-            line-height: 1.6;
+            font-size: 0.9em;
+            margin: 5px 0;
+            line-height: 1.5;
         }
         #info-panel a {
-            color: #00f6ff;
-            text-decoration: none;
             display: inline-block;
             margin-top: 15px;
-            padding: 10px 15px;
-            border: 1px solid #00f6ff;
-            border-radius: 5px;
+            padding: 8px 12px;
+            border: 1px solid #76d7c4;
+            border-radius: 4px;
+            color: #76d7c4;
+            text-decoration: none;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        #info-panel a:hover {
+            background-color: #76d7c4;
+            color: #0a192f;
         }
     </style>
 </head>
 <body>
-    <div id="interactive-container"></div>
+    <div id="galaxy-container"></div>
     <div id="info-panel">
         <h2 id="info-title"></h2>
         <p id="info-date"></p>
@@ -65,97 +67,162 @@
         <a id="info-link" href="#" target="_blank">閱讀全文</a>
     </div>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Complete Article Database ---
         const articles = [
-            // EP Articles
-            { "id": "EP01", "type": "EP", "date": "2025-03-11", "title": "EP01《試算表大戰首部曲：Excel 報表做了四年，才發現同事總是滑手機還能準時下班的秘密！》", "summary": "一名VBA學徒，在混亂的試算表銀河系中，踏上了尋找自動化之道的冒險，迎向傳說中的大師──ChatGPT！" },
-            { "id": "EP02", "type": "EP", "date": "2025-03-18", "title": "EP02《試算表大戰二部曲：當主管對我說「這工作我真的沒辦法…」》", "summary": "當自動化的力量開始改變團隊，一場Excel 革命正在醞釀……VBA 的影響力，不止於個人，而是改變整個戰局！" },
-            { "id": "EP15", "type": "EP", "date": "2025-08-21", "title": "EP15《Spreadsheet Wars：價值觀與信念，才是人與人之間的連結器！》", "summary": "反思價值觀如何成為建立人際與專業連結的真正核心，而非僅僅是技能的展現。" },
+            // EP1-14
+            { id: "EP01", type: "EP", date: "2025-03-11", title: "EP01《試算表大戰首部曲：…同事滑手機還能準時下班的秘密！》", summary: "一個VBA學徒踏上尋找自動化之道的冒險，迎向傳說中的大師──ChatGPT！" },
+            { id: "EP02", type: "EP", date: "2025-03-18", title: "EP02《試算表大戰二部曲：當主管對我說「這工作我真的沒辦法…」》", summary: "當自動化的力量開始改變團隊，一場Excel革命正在醞釀，VBA的影響力不止於個人，而是改變整個戰局！" },
+            { id: "EP03", type: "EP", date: "2025-03-25", title: "EP03《試算表大戰三部曲：三個Excel小技巧，讓你的報表更強大！》", summary: "分享三個實用技巧：善用內建函數、將參數表格化管理，以及封裝重複的程式碼，讓Excel報表更靈活、易維護。" },
+            { id: "EP04", type: "EP", date: "2025-04-01", title: "EP04《試算表大戰四部曲：從動物烏托邦體會到的Try Everything之道！》", summary: "從學習VBA的過程中體悟到，重要的不是工具本身，而是保持好奇心與行動力，勇敢嘗試每一種解決問題的可能。" },
+            { id: "EP05", type: "EP", date: "2025-04-08", title: "EP05《試算表大戰五部曲：VBA檢核艦隊的最後防線！》", summary: "分享如何用VBA打造一個「檔案命名檢查器」，自動化檢查報表是否符合命名規則並存放在正確路徑，解決管理難題。" },
+            { id: "EP06", type: "EP", date: "2025-04-22", title: "EP06《試算表大戰六部曲：VBA飛行員總有一天會被AI無人機淘汰！》", summary: "探討在AI時代下，VBA等傳統工具的價值。結論是，決定成敗的不是工具，而是使用工具的人，活在當下解決問題最重要。" },
+            { id: "EP07", type: "EP", date: "2025-04-29", title: "EP07《試算表大戰七部曲：…如何在職場戴上心智的頭盔！》", summary: "分享一次職場衝突經歷，如何將被誤解與否定的感受，轉化為專注於專業、不再討好的堅毅心態。" },
+            { id: "EP08", type: "EP", date: "2025-05-13", title: "EP08《試算表大戰八部曲：職場就像一盒巧克力…》", summary: "面對職場上突如其來的奇特任務，如何轉念將其視為練習機會，將需求拆解並用VBA實作出解決方案。" },
+            { id: "EP09", type: "EP", date: "2025-05-29", title: "EP09《試算表大戰九部曲：當升遷的直升機來臨，我猶豫後選擇走樓梯！》", summary: "婉拒一次看似完美的升遷機會後，選擇走另一條路，反而開啟了更貼近內心與熱情的職涯方向。" },
+            { id: "EP10", type: "EP", date: "2025-06-12", title: "EP10《試算表大戰十部曲：…按鈕讓信件像洲際飛彈劃過天際》", summary: "分享如何使用VBA結合Outlook，將重複且需分眾的郵件寄送工作，變成一鍵發送的自動化流程。" },
+            { id: "EP11", type: "EP", date: "2025-06-26", title: "EP11《試算表大戰十一部曲：電影雷霆特攻隊觀後感──接納自己的原廠設定！》", summary: "從電影觀後感反思，並透過與AI對話，重新認識自己對效率與掌控感的「原廠設定」，學會誠實接納自己。" },
+            { id: "EP12", type: "EP", date: "2025-07-10", title: "EP12《試算表大戰十二部曲：被重複性報表不斷折磨後，前往談判的時間博士！》", summary: "面對重複性報表地獄，將流程拆解並打造成可重複使用的VBA函數庫，主動掌握流程，擺脫被動折磨。" },
+            { id: "EP13", type: "EP", date: "2025-07-24", title: "EP13《Spreadsheet Wars：唯一確定的，就是「什麼都不確定」…》", summary: "在獲得升遷後，反而引發對自身價值的反思。面對合併案的高度不確定性，決定向內聚焦，專注於長期價值的建立。" },
+            { id: "EP14", type: "EP", date: "2025-08-07", title: "EP14《Spreadsheet Wars：雖然我沒有辦法把Excel玩成電競…》", summary: "從Excel世界大賽得到啟發，雖然無法成為頂尖高手，但透過打造自己的VBA模組艦隊，贏得了寶貴的個人時間。" },
+            
+            // SP1-4
+            { id: "SP01", type: "SP", date: "2025-04-05", title: "SP01《…「破窗效應」對報表與生活環境帶來Bug》", summary: "以VBA報表除錯為喻，探討生活中的「破窗效應」，呼籲大家正視並修復身邊沉默的錯誤，守護共同價值。" },
+            { id: "SP02", type: "SP", date: "Unknown", title: "SP02《…地基不穩，再美好的生活與工作都是幻影》", summary: "探討國安議題，強調在重大議題上沒有中立，不選擇的結果將由別人決定，呼籲大家為自己的未來做出選擇。" },
+            { id: "SP03", type: "SP", date: "2025-07-04", title: "SP03《…一部關於台灣過去、現在與未來的紀錄片》", summary: "紀錄片《造山者》觀後感，對台灣半導體前輩們的遠見與賭注感到震撼，並反思個人在安逸環境下的責任與選擇。" },
+            { id: "SP04", type: "SP", date: "2025-07-23", title: "SP04《…我不想等飛機真的下墜時，才開始去搶降落傘！》", summary: "分享準備家庭災難包的過程與思考，強調在複合式風險面前，提前準備不是製造焦慮，而是愛與責任的體現。" },
 
-            // SP Articles
-            { "id": "SP01", "type": "SP", "date": "2025-04-05", "title": "SP01《試算表大戰外傳一：「破窗效應」對報表與生活環境帶來Bug》", "summary": "探討微小的錯誤若不即時修正，不論在試算表或現實社會中，都可能引發更大的問題。" },
-            { "id": "SP04", "type": "SP", "date": "2025-07-23", "title": "SP04《Spreadsheet Wars Special Piece IV：我不想等飛機真的下墜時，才開始去搶降落傘！》", "summary": "面對不確定性，呼籲採取主動的準備，強調為自身安全與自由負責的重要性。" },
-
-            // TLDR Articles
-            { "id": "TLDR01", "type": "TLDR", "date": "2025-06-15", "title": "TLDR_EP 01《震波行動：一鍵發射你的 Outlook 洲際彈道導彈》", "summary": "一頁圖文教學，展示如何用VBA自動化發送客製化Email，將繁瑣任務變成一鍵搞定。" },
-            { "id": "TLDR02", "type": "TLDR", "date": "2025-07-14", "title": "TLDR_EP 02《俠盜一號：帝國指揮官的報表命名檢查器》", "summary": "快速介紹一個VBA小工具，自動確保所有報表都已正確命名並歸檔，避免 혼亂。" }
+            // TLDR1-4
+            { id: "TLDR01", type: "TLDR", date: "2025-06-15", title: "TLDR_EP01《震波行動：一鍵發射你的 Outlook 洲際彈道導彈》", summary: "一頁圖文懶人包，展示如何用VBA將重複的Outlook寄信工作自動化，精準命中目標。" },
+            { id: "TLDR02", type: "TLDR", date: "2025-07-14", title: "TLDR_EP02《俠盜一號：帝國指揮官的報表命名檢查器》", summary: "一頁圖文懶人包，介紹一個VBA小工具，能自動檢查多份報表的命名規則與路徑，確保檔案不遺漏。" },
+            { id: "TLDR03", type: "TLDR", date: "2025-07-28", title: "TLDR_EP03《時間博士：設計魔法函數前去和重複黑暗魔王談判》", summary: "一頁圖文懶人包，分享如何將重複的流程模組化，打造自己的VBA函數庫，對抗重複工作的黑暗魔王。" },
+            { id: "TLDR04", type: "TLDR", date: "2025-08-11", title: "TLDR_EP04《Excel竟然變成電競比賽？》", summary: "一頁圖文懶人包，介紹Excel世界大賽的趣聞，並分享自己打造的VBA陣列過濾函數，提升工作效率。" }
         ];
 
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 30;
 
-        const svg = d3.select("#interactive-container").append("svg")
-            .attr("width", width)
-            .attr("height", height);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('galaxy-container').appendChild(renderer.domElement);
 
-        const simulation = d3.forceSimulation(articles)
-            .force("charge", d3.forceManyBody().strength(-200))
-            .force("center", d3.forceCenter(width / 2, height / 2))
-            .force("collision", d3.forceCollide().radius(d => d.type === 'TLDR' ? 20 : 30));
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.screenSpacePanning = false;
+        controls.minDistance = 5;
+        controls.maxDistance = 100;
 
-        const colorScale = d3.scaleOrdinal()
-            .domain(["EP", "SP", "TLDR"])
-            .range(["#00aaff", "#ff4444", "#ffff00"]);
+        // --- Starfield ---
+        const starsGeometry = new THREE.BufferGeometry();
+        const starsCount = 5000;
+        const posArray = new Float32Array(starsCount * 3);
+        for (let i = 0; i < starsCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 200;
+        }
+        starsGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMaterial = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff });
+        const starMesh = new THREE.Points(starsGeometry, starsMaterial);
+        scene.add(starMesh);
 
-        const nodes = svg.append("g")
-            .selectAll("circle")
-            .data(articles)
-            .enter().append("circle")
-            .attr("r", d => d.type === 'TLDR' ? 10 : 15)
-            .attr("fill", d => colorScale(d.type))
-            .attr("stroke", "#fff")
-            .attr("stroke-width", 1.5)
-            .call(d3.drag()
-                .on("start", dragstarted)
-                .on("drag", dragged)
-                .on("end", dragended))
-            .on("click", showInfo);
+        // --- Nodes ---
+        const objects = [];
+        const constellationCenters = {
+            EP: new THREE.Vector3(-15, 5, 0),
+            SP: new THREE.Vector3(15, -5, 0),
+            TLDR: new THREE.Vector3(0, -10, 5)
+        };
+        const constellationRadius = {
+            EP: 10, SP: 6, TLDR: 6
+        };
 
-        const labels = svg.append("g")
-            .selectAll("text")
-            .data(articles)
-            .enter().append("text")
-            .text(d => d.id)
-            .attr("fill", "#fff")
-            .attr("font-size", "10px")
-            .attr("dx", 18)
-            .attr("dy", 4);
+        const colorMap = {
+            EP: 0x00aaff, SP: 0xff4444, TLDR: 0xffff00
+        };
 
-        simulation.on("tick", () => {
-            nodes
-                .attr("cx", d => d.x)
-                .attr("cy", d => d.y);
-            labels
-                .attr("x", d => d.x)
-                .attr("y", d => d.y);
+        articles.forEach(article => {
+            const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const material = new THREE.MeshBasicMaterial({ color: colorMap[article.type] });
+            const sphere = new THREE.Mesh(geometry, material);
+
+            const center = constellationCenters[article.type];
+            const radius = Math.random() * constellationRadius[article.type];
+            const angle = Math.random() * Math.PI * 2;
+            sphere.position.set(
+                center.x + Math.cos(angle) * radius,
+                center.y + Math.sin(angle) * radius,
+                center.z + (Math.random() - 0.5) * 5
+            );
+
+            sphere.userData = article;
+            scene.add(sphere);
+            objects.push(sphere);
         });
 
-        function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-        }
+        // --- Interaction ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const infoPanel = document.getElementById('info-panel');
 
-        function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
+        window.addEventListener('resize', onWindowResize, false);
 
-        function dragended(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            d.fx = null;
-            d.fy = null;
-        }
+        function onClick(event) {
+            // Check if click is on the info panel
+            if (infoPanel.style.display === 'block' && infoPanel.contains(event.target)) {
+                return;
+            }
 
-        const infoPanel = d3.select("#info-panel");
-        function showInfo(event, d) {
-            infoPanel.classed("visible", true);
-            d3.select("#info-title").text(d.title);
-            d3.select("#info-date").text(`發布於： ${d.date}`);
-            d3.select("#info-summary").text(d.summary);
-            d3.select("#info-link").attr("href", `#${d.id}`);
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+
+            const intersects = raycaster.intersectObjects(objects);
+
+            if (intersects.length > 0) {
+                const obj = intersects[0].object;
+                const data = obj.userData;
+                
+                document.getElementById('info-title').textContent = data.title;
+                document.getElementById('info-date').textContent = "發布於：" + data.date;
+                document.getElementById('info-summary').textContent = data.summary;
+                document.getElementById('info-link').href = "#" + data.id; // Placeholder
+
+                const screenPos = obj.position.clone().project(camera);
+                infoPanel.style.left = `${(screenPos.x + 1) / 2 * window.innerWidth}px`;
+                infoPanel.style.top = `${(-screenPos.y + 1) / 2 * window.innerHeight}px`;
+                infoPanel.style.display = 'block';
+
+            } else {
+                infoPanel.style.display = 'none';
+            }
         }
+        window.addEventListener('click', onClick);
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+
     </script>
 </body>
 </html>
